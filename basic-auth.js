@@ -1,3 +1,15 @@
+"use strict";
+
+// Multiple changes from https://github.com/c4milo/connect-basic-auth:
+//
+// 1. Change req.remoteUser to req.user
+//    <https://github.com/visionmedia/express/issues/1145>
+// 2. When authentication successful, return entire user object
+//    instead of just username (57)
+// 3. Print out error if given one (51)
+//
+// Done by eshao on 1 Dec 2012
+
 module.exports = function (callback, realm) {
     if (!callback || typeof callback != 'function') {
         throw new Error('You must provide a function ' +
@@ -19,7 +31,7 @@ module.exports = function (callback, realm) {
         req.requireAuthorization = function(req, res, next) {
             var authorization = req.headers.authorization;
 
-            if (req.remoteUser) return next();
+            if (req.user) return next();
             if (!authorization) return unauthorized(res, true);
 
             var parts = authorization.split(' ');
@@ -35,14 +47,15 @@ module.exports = function (callback, realm) {
             var credentials = { username: _credentials[0],
                                 password: _credentials[1] };
 
-            callback(credentials, req, res, function(err) {
+            callback(credentials, req, res, function(err, user) {
                 if (err) {
-                    unauthorized(res);
+//                    unauthorized(res);
+                      res.jsonp(err.statusCode || 500, err.serialize())
                     next(err);
                     return;
                 }
 
-                req.remoteUser = credentials.username;
+                req.user = user
                 next();
             });
         };
